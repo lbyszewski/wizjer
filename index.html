@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zadanie z informatyki – klasa 2</title>
+    <style>
+        :root {
+            --tlo: #eef2f7;
+            --karta: #ffffff;
+            --tekst: #1f2937;
+            --szary: #6b7280;
+            --akcent: #2563eb;
+            --akcent-ciemny: #1d4ed8;
+            --czerwony: #dc2626;
+            --cien: 0 20px 50px rgba(0, 0, 0, 0.25);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            background: var(--tlo);
+            color: var(--tekst);
+            overflow: hidden;
+        }
+
+        .kafel {
+            max-width: 460px;
+            width: 100%;
+            background: var(--karta);
+            border-radius: 16px;
+            padding: 32px 24px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .ikona { font-size: 3rem; margin-bottom: 8px; }
+        .kafel h1 { margin: 0 0 8px; font-size: 1.5rem; }
+        .kafel p { margin: 0 0 24px; color: var(--szary); }
+
+        button {
+            font: inherit;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            cursor: pointer;
+            background: var(--akcent);
+            color: #fff;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover { background: var(--akcent-ciemny); }
+        button:active { transform: scale(0.97); }
+
+        /* ===== Wyskakujące okienka ===== */
+        .okno {
+            position: fixed;
+            width: 240px;
+            background: var(--karta);
+            border-radius: 10px;
+            box-shadow: var(--cien);
+            overflow: hidden;
+            animation: pojaw 0.2s ease-out;
+        }
+
+        @keyframes pojaw {
+            from { opacity: 0; transform: translateY(20px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .okno .pasek {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 8px 8px 14px;
+            background: var(--czerwony);
+            color: #fff;
+            cursor: move;
+            user-select: none;
+        }
+
+        .okno .pasek button {
+            background: transparent;
+            padding: 2px 8px;
+            font-size: 1.1rem;
+        }
+
+        .okno .pasek button:hover { background: #7f1d1d; }
+        .okno .tresc { padding: 16px; font-size: 0.95rem; line-height: 1.4; }
+
+        /* ===== Powiadomienie (toast) ===== */
+        #toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translate(-50%, 100px);
+            background: #1e293b;
+            color: #fff;
+            padding: 12px 22px;
+            border-radius: 8px;
+            box-shadow: var(--cien);
+            transition: transform 0.3s;
+            z-index: 2147483647;
+        }
+
+        #toast.widoczny { transform: translate(-50%, 0); }
+    </style>
+</head>
+<body>
+
+<section class="kafel">
+    <div class="ikona">💻</div>
+    <h1>Zadanie z informatyki dla klasy drugiej</h1>
+    <p>Kliknij, aby zobaczyć treść zadania.</p>
+    <button id="lawina">Zobacz treść zadania</button>
+</section>
+
+<div id="toast"></div>
+
+<script>
+    // --- Powiadomienie (toast) ---
+    let czasToast;
+    function pokazToast(tekst) {
+        const toast = document.getElementById("toast");
+        toast.textContent = tekst;
+        toast.classList.add("widoczny");
+        clearTimeout(czasToast);
+        czasToast = setTimeout(() => toast.classList.remove("widoczny"), 2500);
+    }
+
+    // --- Lawina okien bez końca: 5 -> 20 -> 200 -> 2000 -> 20000 -> ... ---
+    // Pierwsza fala ma 5 okien, druga 4 razy więcej, każda następna 10 razy więcej.
+    let najwyzszyZ = 100;
+    let fala = -1;
+    let wielkoscFali = 0;
+    let otwarteWFali = 0;
+
+    document.getElementById("lawina").addEventListener("click", () => {
+        if (fala !== -1) return; // lawina już trwa
+        nastepnaFala();
+    });
+
+    function nastepnaFala() {
+        fala++;
+        wielkoscFali = fala === 0 ? 5 : fala === 1 ? 20 : wielkoscFali * 10;
+        otwarteWFali = wielkoscFali;
+        if (fala > 0) pokazToast(`Ups! Fala ${fala + 1}: teraz jest ich ${wielkoscFali.toLocaleString("pl-PL")}…`);
+
+        // Okienka „wyskakują” partiami w każdej klatce animacji,
+        // tak żeby cała fala pojawiła się w ok. 1,5 sekundy i strona się nie zawiesiła.
+        const naKlatke = Math.ceil(wielkoscFali / 90);
+        let utworzone = 0;
+        const fragment = () => {
+            for (let i = 0; i < naKlatke && utworzone < wielkoscFali; i++) {
+                utworzOknoLawiny(++utworzone);
+            }
+            if (utworzone < wielkoscFali) requestAnimationFrame(fragment);
+        };
+        requestAnimationFrame(fragment);
+    }
+
+    function utworzOknoLawiny(numer) {
+        const okno = document.createElement("div");
+        okno.className = "okno";
+        okno.style.left = Math.random() * Math.max(0, window.innerWidth - 240) + "px";
+        okno.style.top = Math.random() * Math.max(0, window.innerHeight - 130) + "px";
+        okno.style.zIndex = ++najwyzszyZ;
+        okno.innerHTML = `
+            <div class="pasek">
+                <span>⚠️ Okienko ${numer} / ${wielkoscFali}</span>
+                <button aria-label="Zamknij">&times;</button>
+            </div>
+            <div class="tresc">Zamknij mnie! Zostało jeszcze trochę…</div>`;
+
+        okno.querySelector("button").addEventListener("click", () => {
+            okno.remove();
+            otwarteWFali--;
+            if (otwarteWFali === 0) nastepnaFala();
+        });
+        okno.addEventListener("pointerdown", () => okno.style.zIndex = ++najwyzszyZ);
+        wlaczPrzeciaganie(okno, okno.querySelector(".pasek"));
+        document.body.appendChild(okno);
+    }
+
+    // --- Przeciąganie okienek za pasek tytułu ---
+    function wlaczPrzeciaganie(okno, uchwyt) {
+        uchwyt.addEventListener("pointerdown", e => {
+            if (e.target.tagName === "BUTTON") return;
+            const dx = e.clientX - okno.offsetLeft;
+            const dy = e.clientY - okno.offsetTop;
+            uchwyt.setPointerCapture(e.pointerId);
+
+            const ruch = ev => {
+                okno.style.left = (ev.clientX - dx) + "px";
+                okno.style.top = (ev.clientY - dy) + "px";
+            };
+            const koniec = () => {
+                uchwyt.removeEventListener("pointermove", ruch);
+                uchwyt.removeEventListener("pointerup", koniec);
+            };
+            uchwyt.addEventListener("pointermove", ruch);
+            uchwyt.addEventListener("pointerup", koniec);
+        });
+    }
+</script>
+
+</body>
+</html>
